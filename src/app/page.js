@@ -229,37 +229,57 @@ const WorkHoursTracker = () => {
     const strokeDasharray = circumference;
     const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
+    // Responsive size based on screen width
+    const [responsiveSize, setResponsiveSize] = useState(size);
+    
+    useEffect(() => {
+      const updateSize = () => {
+        if (typeof window !== 'undefined') {
+          setResponsiveSize(window.innerWidth < 640 ? Math.min(size, 120) : size);
+        }
+      };
+      
+      updateSize();
+      window.addEventListener('resize', updateSize);
+      return () => window.removeEventListener('resize', updateSize);
+    }, [size]);
+
+    const finalSize = responsiveSize;
+    const finalRadius = (finalSize - 16) / 2;
+    const finalCircumference = 2 * Math.PI * finalRadius;
+    const finalStrokeDashoffset = finalCircumference - (percentage / 100) * finalCircumference;
+
     return (
       <div className="relative">
-        <svg width={size} height={size} className="transform -rotate-90">
+        <svg width={finalSize} height={finalSize} className="transform -rotate-90">
           <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
+            cx={finalSize / 2}
+            cy={finalSize / 2}
+            r={finalRadius}
             stroke="currentColor"
             strokeWidth="8"
             fill="transparent"
             className="text-white/20"
           />
           <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
+            cx={finalSize / 2}
+            cy={finalSize / 2}
+            r={finalRadius}
             stroke="currentColor"
             strokeWidth="8"
             fill="transparent"
-            strokeDasharray={strokeDasharray}
-            strokeDashoffset={strokeDashoffset}
+            strokeDasharray={finalCircumference}
+            strokeDashoffset={finalStrokeDashoffset}
             className="text-blue-500 progress-ring"
             strokeLinecap="round"
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
-            <div className={`text-2xl font-bold ${theme.textPrimary}`}>
+            <div className={`text-xl sm:text-2xl font-bold ${theme.textPrimary}`}>
               {Math.round(percentage)}%
             </div>
-            <div className={`text-sm ${theme.textMuted} font-medium`}>Complete</div>
+            <div className={`text-xs sm:text-sm ${theme.textMuted} font-medium`}>Complete</div>
           </div>
         </div>
       </div>
@@ -336,43 +356,44 @@ const WorkHoursTracker = () => {
       <div className="relative z-10 min-h-screen flex flex-col">
         {/* Enhanced Header */}
         <header className={`${theme.surface} ${theme.surfaceHover} backdrop-blur-xl sticky top-0 z-40 border-b border-white/10`}>
-          <div className="safe-area-padding px-4 py-4 sm:px-6">
-            <div className="flex items-center justify-between">
-              {/* Logo & Title */}
-              <div className="flex items-center space-x-3">
-                <div className="bg-gradient-primary p-3 rounded-2xl animate-glow shadow-lg">
-                  <Timer className="w-6 h-6 text-white" />
+          <div className="safe-area-padding px-3 py-3 sm:px-6 sm:py-4">
+            {/* Mobile Header Layout */}
+            <div className="flex items-center justify-between mb-3 sm:mb-0">
+              {/* Logo & Title - Responsive */}
+              <div className="flex items-center space-x-2 sm:space-x-3">
+                <div className="bg-gradient-primary p-2 sm:p-3 rounded-xl sm:rounded-2xl animate-glow shadow-lg">
+                  <Timer className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
-                <div>
-                  <h1 className={`text-xl font-bold ${theme.textPrimary} tracking-tight`}>TimeTracker</h1>
-                  <p className={`text-sm ${theme.textMuted} font-medium`}>Work Session Manager</p>
+                <div className="hidden xs:block">
+                  <h1 className={`text-lg sm:text-xl font-bold ${theme.textPrimary} tracking-tight`}>TimeTracker</h1>
+                  <p className={`text-xs sm:text-sm ${theme.textMuted} font-medium hidden sm:block`}>Work Session Manager</p>
                 </div>
               </div>
               
-              {/* Time Display */}
-              <div className={`${theme.surface} rounded-2xl px-4 py-3 shadow-soft border border-white/20`}>
-                <div className={`text-lg font-mono font-bold ${theme.textPrimary} tracking-wider`}>
+              {/* Time Display - Responsive */}
+              <div className={`${theme.surface} rounded-xl sm:rounded-2xl px-2 py-2 sm:px-4 sm:py-3 shadow-soft border border-white/20`}>
+                <div className={`text-sm sm:text-lg font-mono font-bold ${theme.textPrimary} tracking-wider`}>
                   {formatTime(currentTime)}
                 </div>
-                <div className={`text-xs ${theme.textMuted} text-center font-medium mt-0.5`}>
+                <div className={`text-xs ${theme.textMuted} text-center font-medium mt-0.5 hidden sm:block`}>
                   {formatDate(currentTime)}
                 </div>
               </div>
 
-              {/* Navigation Menu */}
-              <div className="flex items-center space-x-2">
-                {/* View Logs Button */}
+              {/* Mobile Navigation Menu */}
+              <div className="flex items-center space-x-1 sm:space-x-2">
+                {/* View Logs Button - Mobile Optimized */}
                 <button
                   onClick={() => window.location.href = '/logs'}
-                  className={`${theme.surface} ${theme.textSecondary} ${theme.surfaceHover} px-4 py-2 rounded-xl flex items-center space-x-2 hover-lift active:scale-95 border border-white/10 shadow-soft touch-action`}
+                  className={`${theme.surface} ${theme.textSecondary} ${theme.surfaceHover} p-2 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl flex items-center space-x-1 sm:space-x-2 hover-lift active:scale-95 border border-white/10 shadow-soft touch-action`}
                 >
                   <BarChart2 className="w-4 h-4" />
-                  <span className="text-sm font-semibold hidden sm:inline">Logs</span>
+                  <span className="text-sm font-semibold hidden md:inline">Logs</span>
                 </button>
 
-                {/* User Profile */}
-                <div className={`${theme.surface} rounded-2xl px-4 py-3 shadow-soft border border-white/20`}>
-                  <div className="flex items-center space-x-3">
+                {/* User Profile - Mobile Optimized */}
+                <div className={`${theme.surface} rounded-lg sm:rounded-2xl p-2 sm:px-4 sm:py-3 shadow-soft border border-white/20`}>
+                  <div className="flex items-center space-x-2 sm:space-x-3">
                     <div className="relative">
                       {session?.user?.image ? (
                         <Image 
@@ -380,16 +401,16 @@ const WorkHoursTracker = () => {
                           alt={session.user.name || 'User'} 
                           width={32}
                           height={32}
-                          className="w-8 h-8 rounded-full border-2 border-white/20"
+                          className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-white/20"
                         />
                       ) : (
-                        <div className="w-8 h-8 rounded-full bg-gradient-primary flex items-center justify-center">
-                          <User className="w-4 h-4 text-white" />
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-primary flex items-center justify-center">
+                          <User className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                         </div>
                       )}
-                      <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                      <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 rounded-full border-2 border-white"></div>
                     </div>
-                    <div className="flex-1 min-w-0 hidden sm:block">
+                    <div className="flex-1 min-w-0 hidden lg:block">
                       <p className={`text-sm font-medium ${theme.textPrimary} truncate`}>
                         {session?.user?.name || 'User'}
                       </p>
@@ -399,30 +420,32 @@ const WorkHoursTracker = () => {
                     </div>
                     <button
                       onClick={() => signOut()}
-                      className={`p-2 rounded-lg ${theme.surfaceHover} ${theme.textMuted} hover:text-red-500 transition-colors`}
+                      className={`p-1.5 sm:p-2 rounded-lg ${theme.surfaceHover} ${theme.textMuted} hover:text-red-500 transition-colors`}
                       title="Sign Out"
                     >
-                      <LogOut className="w-4 h-4" />
+                      <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </button>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Theme Selector */}
-            <div className="flex items-center justify-center mt-4 space-x-2 overflow-x-auto scrollbar-hide pb-2">
+            {/* Theme Selector - Mobile Optimized */}
+            <div className="flex items-center justify-start sm:justify-center mt-3 sm:mt-4 space-x-1 sm:space-x-2 overflow-x-auto scrollbar-hide pb-2">
               {Object.entries(themes).map(([key, themeOption]) => (
                 <button
                   key={key}
                   onClick={() => setCurrentTheme(key)}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-xl transition-all duration-300 hover:scale-105 active:scale-95 min-w-max touch-action ${
+                  className={`flex items-center space-x-1 sm:space-x-2 px-3 py-2 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl transition-all duration-300 hover:scale-105 active:scale-95 min-w-max touch-action flex-shrink-0 ${
                     currentTheme === key
                       ? 'bg-gradient-primary text-white shadow-glow'
                       : `${theme.surface} ${theme.textMuted} ${theme.surfaceHover} border border-white/10`
                   }`}
                 >
-                  {themeOption.icon}
-                  <span className="text-sm font-medium">{themeOption.name}</span>
+                  <div className="w-4 h-4 sm:w-5 sm:h-5">
+                    {themeOption.icon}
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium">{themeOption.name}</span>
                 </button>
               ))}
             </div>
@@ -430,67 +453,67 @@ const WorkHoursTracker = () => {
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 p-4 space-y-6 pb-safe">
+        <main className="flex-1 p-3 sm:p-4 space-y-4 sm:space-y-6 pb-safe">
           {/* Status Banner */}
-          <div className={`${theme.surface} ${theme.surfaceHover} rounded-3xl p-5 animate-scale-in shadow-medium border border-white/10`}>
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div className="flex items-center space-x-3 flex-wrap gap-2">
-                <div className={`flex items-center space-x-2 px-4 py-2.5 rounded-full shadow-lg ${
+          <div className={`${theme.surface} ${theme.surfaceHover} rounded-2xl sm:rounded-3xl p-4 sm:p-5 animate-scale-in shadow-medium border border-white/10`}>
+            <div className="flex items-center justify-between flex-wrap gap-3 sm:gap-4">
+              <div className="flex items-center space-x-2 sm:space-x-3 flex-wrap gap-2">
+                <div className={`flex items-center space-x-1.5 sm:space-x-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-full shadow-lg ${
                   currentStatus === 'IN' 
                     ? 'bg-gradient-success text-white' 
                     : 'bg-gradient-danger text-white'
                 }`}>
-                  <div className={`w-2.5 h-2.5 rounded-full ${
+                  <div className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full ${
                     currentStatus === 'IN' ? 'bg-green-200' : 'bg-red-200'
                   } animate-pulse`}></div>
-                  <span className="text-sm font-semibold tracking-wide">
+                  <span className="text-xs sm:text-sm font-semibold tracking-wide">
                     {currentStatus === 'IN' ? 'Working Now' : 'Offline'}
                   </span>
                 </div>
                 {dailyStats.isComplete && (
-                  <div className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-4 py-2.5 rounded-full shadow-lg animate-bounce-soft">
-                    <div className="flex items-center space-x-2">
-                      <Target className="w-4 h-4" />
-                      <span className="text-sm font-semibold">Goal Achieved!</span>
+                  <div className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-full shadow-lg animate-bounce-soft">
+                    <div className="flex items-center space-x-1.5 sm:space-x-2">
+                      <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      <span className="text-xs sm:text-sm font-semibold">Goal Achieved!</span>
                     </div>
                   </div>
                 )}
               </div>
               
-              <div className="flex items-center space-x-3 flex-wrap">
+              <div className="flex items-center space-x-2 sm:space-x-3 flex-wrap">
                 <button
                   onClick={saveDailyLog}
                   disabled={entries.length === 0}
-                  className={`${theme.surface} ${theme.textSecondary} ${theme.surfaceHover} px-5 py-2.5 rounded-xl flex items-center space-x-2 hover-lift active:scale-95 border border-white/10 shadow-soft touch-action disabled:opacity-50 disabled:cursor-not-allowed`}
+                  className={`${theme.surface} ${theme.textSecondary} ${theme.surfaceHover} px-3 py-2 sm:px-5 sm:py-2.5 rounded-lg sm:rounded-xl flex items-center space-x-1.5 sm:space-x-2 hover-lift active:scale-95 border border-white/10 shadow-soft touch-action disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
-                  <CheckCircle className="w-4 h-4" />
-                  <span className="text-sm font-semibold">Save Log</span>
+                  <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="text-xs sm:text-sm font-semibold">Save</span>
                 </button>
                 
                 <button
                   onClick={resetDay}
-                  className={`${theme.surface} ${theme.textSecondary} ${theme.surfaceHover} px-5 py-2.5 rounded-xl flex items-center space-x-2 hover-lift active:scale-95 border border-white/10 shadow-soft touch-action`}
+                  className={`${theme.surface} ${theme.textSecondary} ${theme.surfaceHover} px-3 py-2 sm:px-5 sm:py-2.5 rounded-lg sm:rounded-xl flex items-center space-x-1.5 sm:space-x-2 hover-lift active:scale-95 border border-white/10 shadow-soft touch-action`}
                 >
-                  <RotateCcw className="w-4 h-4" />
-                  <span className="text-sm font-semibold">Reset Day</span>
+                  <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="text-xs sm:text-sm font-semibold">Reset</span>
                 </button>
               </div>
             </div>
           </div>
 
           {/* Clock and Stats Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-5 gap-4 sm:gap-6">
             {/* Clock Card */}
-            <div className="lg:col-span-2">
-              <div className={`${theme.surface} ${theme.surfaceHover} rounded-3xl p-8 text-center animate-float shadow-large border border-white/10`}>
-                <div className="mb-6">
-                  <h2 className={`text-2xl font-bold ${theme.textPrimary} mb-2`}>Time Clock</h2>
-                  <p className={`text-sm ${theme.textMuted} font-medium`}>
+            <div className="xl:col-span-2">
+              <div className={`${theme.surface} ${theme.surfaceHover} rounded-2xl sm:rounded-3xl p-6 sm:p-8 text-center animate-float shadow-large border border-white/10`}>
+                <div className="mb-4 sm:mb-6">
+                  <h2 className={`text-xl sm:text-2xl font-bold ${theme.textPrimary} mb-2`}>Time Clock</h2>
+                  <p className={`text-xs sm:text-sm ${theme.textMuted} font-medium`}>
                     {currentStatus === 'OUT' ? 'Ready to start your work session' : 'Session in progress'}
                   </p>
                 </div>
                 
-                <div className="flex justify-center mb-8">
+                <div className="flex justify-center mb-6 sm:mb-8">
                   <CircularProgress percentage={getProgressPercentage()} size={160} />
                 </div>
                 
@@ -498,16 +521,16 @@ const WorkHoursTracker = () => {
                   onClick={handleThumbPress}
                   className={`clock-button w-full ${
                     currentStatus === 'OUT' ? theme.clockIn : theme.clockOut
-                  } rounded-2xl py-4 text-lg font-bold tracking-wide touch-action`}
+                  } rounded-xl sm:rounded-2xl py-3 sm:py-4 text-base sm:text-lg font-bold tracking-wide touch-action`}
                 >
                   {currentStatus === 'OUT' ? (
                     <>
-                      <Play className="w-7 h-7" />
+                      <Play className="w-5 h-5 sm:w-7 sm:h-7" />
                       <span>Start Work</span>
                     </>
                   ) : (
                     <>
-                      <Pause className="w-7 h-7" />
+                      <Pause className="w-5 h-5 sm:w-7 sm:h-7" />
                       <span>End Session</span>
                     </>
                   )}
@@ -516,21 +539,21 @@ const WorkHoursTracker = () => {
             </div>
 
             {/* Stats Cards */}
-            <div className="lg:col-span-3 space-y-6">
+            <div className="xl:col-span-3 space-y-4 sm:space-y-6">
               {/* Progress Overview */}
-              <div className={`${theme.surface} ${theme.surfaceHover} rounded-3xl p-6 shadow-large border border-white/10`}>
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center space-x-3">
-                    <div className="bg-gradient-primary p-2.5 rounded-xl">
-                      <BarChart2 className="w-5 h-5 text-white" />
+              <div className={`${theme.surface} ${theme.surfaceHover} rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-large border border-white/10`}>
+                <div className="flex items-center justify-between mb-4 sm:mb-6">
+                  <div className="flex items-center space-x-2 sm:space-x-3">
+                    <div className="bg-gradient-primary p-2 sm:p-2.5 rounded-lg sm:rounded-xl">
+                      <BarChart2 className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                     </div>
                     <div>
-                      <h3 className={`text-xl font-bold ${theme.textPrimary}`}>Daily Progress</h3>
-                      <p className={`text-sm ${theme.textMuted} font-medium`}>8-hour work goal</p>
+                      <h3 className={`text-lg sm:text-xl font-bold ${theme.textPrimary}`}>Daily Progress</h3>
+                      <p className={`text-xs sm:text-sm ${theme.textMuted} font-medium`}>8-hour work goal</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className={`text-3xl font-bold ${theme.textPrimary}`}>
+                    <div className={`text-2xl sm:text-3xl font-bold ${theme.textPrimary}`}>
                       {Math.round(getProgressPercentage())}%
                     </div>
                     <div className={`text-xs ${theme.textMuted} font-medium`}>Complete</div>
@@ -538,10 +561,10 @@ const WorkHoursTracker = () => {
                 </div>
 
                 {/* Progress Bar */}
-                <div className="mb-6">
-                  <div className="w-full bg-white/20 rounded-full h-4 overflow-hidden shadow-inner">
+                <div className="mb-4 sm:mb-6">
+                  <div className="w-full bg-white/20 rounded-full h-3 sm:h-4 overflow-hidden shadow-inner">
                     <div 
-                      className={`h-4 rounded-full transition-all duration-1000 ease-out shadow-sm ${
+                      className={`h-3 sm:h-4 rounded-full transition-all duration-1000 ease-out shadow-sm ${
                         dailyStats.isComplete ? 'bg-gradient-success' : 'bg-gradient-primary'
                       }`}
                       style={{ width: `${getProgressPercentage()}%` }}
@@ -550,21 +573,21 @@ const WorkHoursTracker = () => {
                 </div>
 
                 {/* Quick Stats Grid */}
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="text-center p-3 rounded-2xl bg-white/30 backdrop-blur-sm">
-                    <div className={`text-xl font-bold ${theme.textPrimary}`}>
+                <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                  <div className="text-center p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white/30 backdrop-blur-sm">
+                    <div className={`text-lg sm:text-xl font-bold ${theme.textPrimary}`}>
                       {formatMinutesToHours(dailyStats.totalWorkMinutes)}
                     </div>
                     <div className={`text-xs ${theme.textMuted} font-semibold`}>Work Time</div>
                   </div>
-                  <div className="text-center p-3 rounded-2xl bg-white/30 backdrop-blur-sm">
-                    <div className={`text-xl font-bold ${theme.textPrimary}`}>
+                  <div className="text-center p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white/30 backdrop-blur-sm">
+                    <div className={`text-lg sm:text-xl font-bold ${theme.textPrimary}`}>
                       {formatMinutesToHours(dailyStats.totalBreakMinutes)}
                     </div>
                     <div className={`text-xs ${theme.textMuted} font-semibold`}>Break Time</div>
                   </div>
-                  <div className="text-center p-3 rounded-2xl bg-white/30 backdrop-blur-sm">
-                    <div className={`text-xl font-bold ${theme.textPrimary}`}>
+                  <div className="text-center p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white/30 backdrop-blur-sm">
+                    <div className={`text-lg sm:text-xl font-bold ${theme.textPrimary}`}>
                       {getRemainingTime()}
                     </div>
                     <div className={`text-xs ${theme.textMuted} font-semibold`}>Remaining</div>
@@ -573,43 +596,43 @@ const WorkHoursTracker = () => {
               </div>
 
               {/* Detailed Stats */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className={`stat-card ${theme.workCard} text-white rounded-3xl shadow-large border border-white/10`}>
-                  <div className="flex items-center space-x-3">
-                    <div className="bg-white/20 p-2.5 rounded-xl">
-                      <Timer className="w-5 h-5 text-white" />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                <div className={`stat-card ${theme.workCard} text-white rounded-2xl sm:rounded-3xl shadow-large border border-white/10`}>
+                  <div className="flex items-center space-x-2 sm:space-x-3">
+                    <div className="bg-white/20 p-2 sm:p-2.5 rounded-lg sm:rounded-xl">
+                      <Timer className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                     </div>
                     <div>
-                      <p className="text-white/80 text-sm font-medium">Total Work</p>
-                      <p className="text-xl font-bold tracking-tight">
+                      <p className="text-white/80 text-xs sm:text-sm font-medium">Total Work</p>
+                      <p className="text-lg sm:text-xl font-bold tracking-tight">
                         {formatMinutesToHours(dailyStats.totalWorkMinutes)}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className={`stat-card ${theme.breakCard} text-white rounded-3xl shadow-large border border-white/10`}>
-                  <div className="flex items-center space-x-3">
-                    <div className="bg-white/20 p-2.5 rounded-xl">
-                      <Coffee className="w-5 h-5 text-white" />
+                <div className={`stat-card ${theme.breakCard} text-white rounded-2xl sm:rounded-3xl shadow-large border border-white/10`}>
+                  <div className="flex items-center space-x-2 sm:space-x-3">
+                    <div className="bg-white/20 p-2 sm:p-2.5 rounded-lg sm:rounded-xl">
+                      <Coffee className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                     </div>
                     <div>
-                      <p className="text-white/80 text-sm font-medium">Break Time</p>
-                      <p className="text-xl font-bold tracking-tight">
+                      <p className="text-white/80 text-xs sm:text-sm font-medium">Break Time</p>
+                      <p className="text-lg sm:text-xl font-bold tracking-tight">
                         {formatMinutesToHours(dailyStats.totalBreakMinutes)}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className={`stat-card ${theme.remainingCard} text-white rounded-3xl shadow-large border border-white/10`}>
-                  <div className="flex items-center space-x-3">
-                    <div className="bg-white/20 p-2.5 rounded-xl">
-                      <Target className="w-5 h-5 text-white" />
+                <div className={`stat-card ${theme.remainingCard} text-white rounded-2xl sm:rounded-3xl shadow-large border border-white/10 sm:col-span-1 col-span-1`}>
+                  <div className="flex items-center space-x-2 sm:space-x-3">
+                    <div className="bg-white/20 p-2 sm:p-2.5 rounded-lg sm:rounded-xl">
+                      <Target className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                     </div>
                     <div>
-                      <p className="text-white/80 text-sm font-medium">Remaining</p>
-                      <p className="text-xl font-bold tracking-tight">
+                      <p className="text-white/80 text-xs sm:text-sm font-medium">Remaining</p>
+                      <p className="text-lg sm:text-xl font-bold tracking-tight">
                         {getRemainingTime()}
                       </p>
                     </div>
@@ -620,50 +643,50 @@ const WorkHoursTracker = () => {
           </div>
 
           {/* Activity Timeline */}
-          <div className={`${theme.surface} ${theme.surfaceHover} rounded-3xl p-6 shadow-large border border-white/10`}>
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-3">
-                <div className="bg-gradient-primary p-2.5 rounded-xl shadow-lg">
-                  <Activity className="w-5 h-5 text-white" />
+          <div className={`${theme.surface} ${theme.surfaceHover} rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-large border border-white/10`}>
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <div className="flex items-center space-x-2 sm:space-x-3">
+                <div className="bg-gradient-primary p-2 sm:p-2.5 rounded-lg sm:rounded-xl shadow-lg">
+                  <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className={`text-xl font-bold ${theme.textPrimary}`}>Activity Timeline</h3>
-                  <p className={`text-sm ${theme.textMuted} font-medium`}>Today&apos;s work sessions</p>
+                  <h3 className={`text-lg sm:text-xl font-bold ${theme.textPrimary}`}>Activity Timeline</h3>
+                  <p className={`text-xs sm:text-sm ${theme.textMuted} font-medium`}>Today&apos;s work sessions</p>
                 </div>
               </div>
-              <div className={`text-sm ${theme.textMuted} font-medium`}>
+              <div className={`text-xs sm:text-sm ${theme.textMuted} font-medium`}>
                 {entries.length > 0 ? `${Math.ceil(entries.length / 2)} sessions` : 'No sessions'}
               </div>
             </div>
 
             {entries.length === 0 ? (
-              <div className="text-center py-16">
-                <div className={`${theme.surface} rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6 shadow-soft border border-white/10`}>
-                  <Clock className={`w-10 h-10 ${theme.textMuted}`} />
+              <div className="text-center py-12 sm:py-16">
+                <div className={`${theme.surface} rounded-full w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-soft border border-white/10`}>
+                  <Clock className={`w-8 h-8 sm:w-10 sm:h-10 ${theme.textMuted}`} />
                 </div>
-                <p className={`${theme.textPrimary} text-lg font-semibold mb-2`}>No activity yet</p>
+                <p className={`${theme.textPrimary} text-base sm:text-lg font-semibold mb-2`}>No activity yet</p>
                 <p className={`${theme.textMuted} text-sm`}>Start your first work session by clocking in</p>
               </div>
             ) : (
-              <div className="space-y-3 max-h-80 overflow-y-auto scrollbar-hide">
+              <div className="space-y-2 sm:space-y-3 max-h-64 sm:max-h-80 overflow-y-auto scrollbar-hide">
                 {entries.map((entry, index) => (
                   <div
                     key={entry.id}
-                    className={`timeline-item flex items-center space-x-4 p-4 rounded-2xl ${theme.surface} border border-white/10 hover:${theme.surfaceHover} transition-all duration-200`}
+                    className={`timeline-item flex items-center space-x-3 sm:space-x-4 p-3 sm:p-4 rounded-xl sm:rounded-2xl ${theme.surface} border border-white/10 hover:${theme.surfaceHover} transition-all duration-200`}
                   >
-                    <div className={`w-4 h-4 rounded-full ${
+                    <div className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full ${
                       entry.type === 'IN' ? 'bg-gradient-success' : 'bg-gradient-danger'
-                    } shadow-lg animate-pulse`}></div>
-                    <div className="flex-1">
-                      <div className={`font-semibold ${theme.textPrimary}`}>
+                    } shadow-lg animate-pulse flex-shrink-0`}></div>
+                    <div className="flex-1 min-w-0">
+                      <div className={`font-semibold ${theme.textPrimary} text-sm sm:text-base`}>
                         {entry.type === 'IN' ? 'Started Work Session' : 'Ended Work Session'}
                       </div>
-                      <div className={`text-sm ${theme.textMuted} font-medium`}>
+                      <div className={`text-xs sm:text-sm ${theme.textMuted} font-medium`}>
                         Session #{Math.floor(index / 2) + 1} • {entry.type === 'IN' ? 'Clock In' : 'Clock Out'}
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className={`font-mono font-bold ${theme.textPrimary} text-lg`}>
+                    <div className="text-right flex-shrink-0">
+                      <div className={`font-mono font-bold ${theme.textPrimary} text-sm sm:text-lg`}>
                         {entry.time}
                       </div>
                       <div className={`text-xs ${theme.textMuted} font-medium uppercase tracking-wide`}>
@@ -680,33 +703,33 @@ const WorkHoursTracker = () => {
 
       {/* Break Dialog */}
       {showBreakDialog && (
-        <div className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50 p-4 backdrop-blur-lg">
-          <div className={`${theme.surface} rounded-t-3xl sm:rounded-3xl p-8 w-full sm:max-w-md animate-scale-in shadow-2xl border border-white/20`}>
-            <div className="text-center mb-8">
-              <div className="bg-gradient-warning p-5 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center animate-bounce-soft shadow-lg">
-                <Coffee className="w-10 h-10 text-white" />
+        <div className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50 p-3 sm:p-4 backdrop-blur-lg">
+          <div className={`${theme.surface} rounded-t-2xl sm:rounded-3xl p-6 sm:p-8 w-full sm:max-w-md animate-scale-in shadow-2xl border border-white/20`}>
+            <div className="text-center mb-6 sm:mb-8">
+              <div className="bg-gradient-warning p-4 sm:p-5 rounded-full w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 sm:mb-6 flex items-center justify-center animate-bounce-soft shadow-lg">
+                <Coffee className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
               </div>
-              <h3 className={`text-2xl font-bold ${theme.textPrimary} mb-3`}>Session Complete</h3>
-              <p className={`${theme.textSecondary} font-medium`}>What would you like to do next?</p>
+              <h3 className={`text-xl sm:text-2xl font-bold ${theme.textPrimary} mb-3`}>Session Complete</h3>
+              <p className={`${theme.textSecondary} font-medium text-sm sm:text-base`}>What would you like to do next?</p>
             </div>
             
             <div className="flex flex-col space-y-3">
               <button
                 onClick={() => handleBreakResponse(true)}
-                className="w-full bg-gradient-warning text-white font-semibold py-4 px-6 rounded-2xl hover-lift active:scale-95 shadow-lg border border-white/20 touch-action"
+                className="w-full bg-gradient-warning text-white font-semibold py-3 sm:py-4 px-4 sm:px-6 rounded-xl sm:rounded-2xl hover-lift active:scale-95 shadow-lg border border-white/20 touch-action"
               >
                 <div className="flex items-center justify-center space-x-2">
-                  <Coffee className="w-5 h-5" />
-                  <span>Take a Break</span>
+                  <Coffee className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="text-sm sm:text-base">Take a Break</span>
                 </div>
               </button>
               <button
                 onClick={() => handleBreakResponse(false)}
-                className="w-full bg-gradient-danger text-white font-semibold py-4 px-6 rounded-2xl hover-lift active:scale-95 shadow-lg border border-white/20 touch-action"
+                className="w-full bg-gradient-danger text-white font-semibold py-3 sm:py-4 px-4 sm:px-6 rounded-xl sm:rounded-2xl hover-lift active:scale-95 shadow-lg border border-white/20 touch-action"
               >
                 <div className="flex items-center justify-center space-x-2">
-                  <CheckCircle className="w-5 h-5" />
-                  <span>End Work Day</span>
+                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="text-sm sm:text-base">End Work Day</span>
                 </div>
               </button>
             </div>

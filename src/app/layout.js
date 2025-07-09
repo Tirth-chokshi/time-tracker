@@ -16,6 +16,24 @@ const geistMono = Geist_Mono({
 export const metadata = {
   title: "TimeTracker - Professional Time Management",
   description: "Track your time efficiently with beautiful analytics, secure Google authentication, and seamless workflow management.",
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#3b82f6' },
+    { media: '(prefers-color-scheme: dark)', color: '#1e40af' }
+  ],
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'TimeTracker',
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 export default function RootLayout({ children }) {
