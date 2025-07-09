@@ -1,8 +1,13 @@
 "use client"
 import React, { useState, useEffect, useCallback } from 'react';
-import { Clock, Play, Pause, RotateCcw, CheckCircle, Coffee, Activity, Timer, Target, BarChart2, Sparkles, Moon, CircleDot } from 'lucide-react';
+import { useSession, signIn, signOut } from 'next-auth/react';
+import Image from 'next/image';
+import { Clock, Play, Pause, RotateCcw, CheckCircle, Coffee, Activity, Timer, Target, BarChart2, Sparkles, Moon, CircleDot, LogOut, User } from 'lucide-react';
+import { useToast } from '@/components/Toast';
 
 const WorkHoursTracker = () => {
+  const { data: session, status } = useSession();
+  const { showToast, ToastContainer } = useToast();
   const [entries, setEntries] = useState([]);
   const [currentStatus, setCurrentStatus] = useState('OUT');
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -181,19 +186,40 @@ const WorkHoursTracker = () => {
     setDailyStats({ totalWorkMinutes: 0, totalBreakMinutes: 0, isComplete: false });
   };
 
-  const formatMinutesToHours = (minutes) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours}h ${mins}m`;
-  };
+  const saveDailyLog = async () => {
+    if (!session || entries.length === 0) {
+      showToast('No time entries to save', 'error');
+      return;
+    }
 
-  const getProgressPercentage = () => {
-    return Math.min((dailyStats.totalWorkMinutes / 480) * 100, 100);
-  };
+    try {
+      showToast('Saving daily log...', 'info');
+      const today = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
+      
+      const response = await fetch('/api/daily-logs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          entries: entries,
+          dailyStats: dailyStats,
+          theme: currentTheme,
+          date: today
+        }),
+      });
 
-  const getRemainingTime = () => {
-    const remaining = 480 - dailyStats.totalWorkMinutes;
-    return remaining > 0 ? formatMinutesToHours(remaining) : '0h 0m';
+      if (response.ok) {
+        const data = await response.json();
+        showToast(data.message, 'success');
+      } else {
+        const error = await response.json();
+        showToast(`Failed to save: ${error.error}`, 'error');
+      }
+    } catch (error) {
+      console.error('Error saving daily log:', error);
+      showToast('Error saving daily log. Please try again.', 'error');
+    }
   };
 
   // Enhanced circular progress component
@@ -240,6 +266,67 @@ const WorkHoursTracker = () => {
     );
   };
 
+  const formatMinutesToHours = (minutes) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours}h ${mins}m`;
+  };
+
+  const getProgressPercentage = () => {
+    return Math.min((dailyStats.totalWorkMinutes / 480) * 100, 100);
+  };
+
+  const getRemainingTime = () => {
+    const remaining = 480 - dailyStats.totalWorkMinutes;
+    return remaining > 0 ? formatMinutesToHours(remaining) : '0h 0m';
+  };
+
+  // Auto-save when day is complete
+  useEffect(() => {
+    if (dailyStats.isComplete && entries.length > 0) {
+      // Optional: Auto-save when day is complete
+      // Uncomment the line below if you want automatic saving
+      // saveDailyLog();
+    }
+  }, [dailyStats.isComplete, entries.length]);
+
+  // Authentication gating logic (must be after all hooks)
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 'unauthenticated') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto px-6">
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 rounded-2xl shadow-lg w-20 h-20 mx-auto mb-6 flex items-center justify-center">
+            <Timer className="w-10 h-10 text-white" />
+          </div>
+          <h1 className="text-3xl font-bold text-slate-900 mb-4">Welcome to TimeTracker</h1>
+          <p className="text-slate-600 mb-8 text-lg">
+            Professional time tracking with beautiful analytics and secure authentication.
+          </p>
+          <button
+            onClick={() => signIn()}
+            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-4 rounded-2xl hover:scale-105 active:scale-95 transition-all duration-300 shadow-lg hover:shadow-xl font-semibold text-lg flex items-center space-x-3 mx-auto"
+          >
+            <span>Get Started</span>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`min-h-screen relative overflow-hidden ${theme.bg}`}>
       {/* Background Pattern */}
@@ -269,6 +356,55 @@ const WorkHoursTracker = () => {
                 </div>
                 <div className={`text-xs ${theme.textMuted} text-center font-medium mt-0.5`}>
                   {formatDate(currentTime)}
+                </div>
+              </div>
+
+              {/* Navigation Menu */}
+              <div className="flex items-center space-x-2">
+                {/* View Logs Button */}
+                <button
+                  onClick={() => window.location.href = '/logs'}
+                  className={`${theme.surface} ${theme.textSecondary} ${theme.surfaceHover} px-4 py-2 rounded-xl flex items-center space-x-2 hover-lift active:scale-95 border border-white/10 shadow-soft touch-action`}
+                >
+                  <BarChart2 className="w-4 h-4" />
+                  <span className="text-sm font-semibold hidden sm:inline">Logs</span>
+                </button>
+
+                {/* User Profile */}
+                <div className={`${theme.surface} rounded-2xl px-4 py-3 shadow-soft border border-white/20`}>
+                  <div className="flex items-center space-x-3">
+                    <div className="relative">
+                      {session?.user?.image ? (
+                        <Image 
+                          src={session.user.image} 
+                          alt={session.user.name || 'User'} 
+                          width={32}
+                          height={32}
+                          className="w-8 h-8 rounded-full border-2 border-white/20"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-gradient-primary flex items-center justify-center">
+                          <User className="w-4 h-4 text-white" />
+                        </div>
+                      )}
+                      <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                    </div>
+                    <div className="flex-1 min-w-0 hidden sm:block">
+                      <p className={`text-sm font-medium ${theme.textPrimary} truncate`}>
+                        {session?.user?.name || 'User'}
+                      </p>
+                      <p className={`text-xs ${theme.textMuted} truncate`}>
+                        {session?.user?.email}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => signOut()}
+                      className={`p-2 rounded-lg ${theme.surfaceHover} ${theme.textMuted} hover:text-red-500 transition-colors`}
+                      title="Sign Out"
+                    >
+                      <LogOut className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -321,13 +457,24 @@ const WorkHoursTracker = () => {
                 )}
               </div>
               
-              <button
-                onClick={resetDay}
-                className={`${theme.surface} ${theme.textSecondary} ${theme.surfaceHover} px-5 py-2.5 rounded-xl flex items-center space-x-2 hover-lift active:scale-95 border border-white/10 shadow-soft touch-action`}
-              >
-                <RotateCcw className="w-4 h-4" />
-                <span className="text-sm font-semibold">Reset Day</span>
-              </button>
+              <div className="flex items-center space-x-3 flex-wrap">
+                <button
+                  onClick={saveDailyLog}
+                  disabled={entries.length === 0}
+                  className={`${theme.surface} ${theme.textSecondary} ${theme.surfaceHover} px-5 py-2.5 rounded-xl flex items-center space-x-2 hover-lift active:scale-95 border border-white/10 shadow-soft touch-action disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  <span className="text-sm font-semibold">Save Log</span>
+                </button>
+                
+                <button
+                  onClick={resetDay}
+                  className={`${theme.surface} ${theme.textSecondary} ${theme.surfaceHover} px-5 py-2.5 rounded-xl flex items-center space-x-2 hover-lift active:scale-95 border border-white/10 shadow-soft touch-action`}
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span className="text-sm font-semibold">Reset Day</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -566,6 +713,9 @@ const WorkHoursTracker = () => {
           </div>
         </div>
       )}
+
+      {/* Toast Container */}
+      <ToastContainer />
     </div>
   );
 };
