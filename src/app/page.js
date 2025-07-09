@@ -224,54 +224,42 @@ const WorkHoursTracker = () => {
 
   // Enhanced circular progress component
   const CircularProgress = ({ percentage, size = 140 }) => {
+    // Use CSS media queries for responsive sizing instead of JavaScript
     const radius = (size - 16) / 2;
     const circumference = 2 * Math.PI * radius;
-    const strokeDasharray = circumference;
     const strokeDashoffset = circumference - (percentage / 100) * circumference;
-
-    // Responsive size based on screen width
-    const [responsiveSize, setResponsiveSize] = useState(size);
-    
-    useEffect(() => {
-      const updateSize = () => {
-        if (typeof window !== 'undefined') {
-          setResponsiveSize(window.innerWidth < 640 ? Math.min(size, 120) : size);
-        }
-      };
-      
-      updateSize();
-      window.addEventListener('resize', updateSize);
-      return () => window.removeEventListener('resize', updateSize);
-    }, [size]);
-
-    const finalSize = responsiveSize;
-    const finalRadius = (finalSize - 16) / 2;
-    const finalCircumference = 2 * Math.PI * finalRadius;
-    const finalStrokeDashoffset = finalCircumference - (percentage / 100) * finalCircumference;
 
     return (
       <div className="relative">
-        <svg width={finalSize} height={finalSize} className="transform -rotate-90">
+        <svg 
+          width={size} 
+          height={size} 
+          className="transform -rotate-90 w-[120px] h-[120px] sm:w-[140px] sm:h-[140px]"
+          viewBox={`0 0 ${size} ${size}`}
+        >
           <circle
-            cx={finalSize / 2}
-            cy={finalSize / 2}
-            r={finalRadius}
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
             stroke="currentColor"
             strokeWidth="8"
             fill="transparent"
             className="text-white/20"
           />
           <circle
-            cx={finalSize / 2}
-            cy={finalSize / 2}
-            r={finalRadius}
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
             stroke="currentColor"
             strokeWidth="8"
             fill="transparent"
-            strokeDasharray={finalCircumference}
-            strokeDashoffset={finalStrokeDashoffset}
-            className="text-blue-500 progress-ring"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            className="text-blue-500 transition-all duration-500 ease-out"
             strokeLinecap="round"
+            style={{
+              transformOrigin: 'center',
+            }}
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
@@ -292,9 +280,10 @@ const WorkHoursTracker = () => {
     return `${hours}h ${mins}m`;
   };
 
-  const getProgressPercentage = () => {
-    return Math.min((dailyStats.totalWorkMinutes / 480) * 100, 100);
-  };
+  const getProgressPercentage = useCallback(() => {
+    const percentage = Math.min((dailyStats.totalWorkMinutes / 480) * 100, 100);
+    return Math.round(percentage * 10) / 10; // Round to 1 decimal place for stability
+  }, [dailyStats.totalWorkMinutes]);
 
   const getRemainingTime = () => {
     const remaining = 480 - dailyStats.totalWorkMinutes;
@@ -431,7 +420,7 @@ const WorkHoursTracker = () => {
             </div>
 
             {/* Theme Selector - Mobile Optimized */}
-            <div className="flex items-center justify-start sm:justify-center mt-3 sm:mt-4 space-x-1 sm:space-x-2 overflow-x-auto scrollbar-hide pb-2">
+            <div className="flex items-center justify-center mt-3 sm:mt-4 space-x-1 sm:space-x-2 overflow-x-auto scrollbar-hide pb-2">
               {Object.entries(themes).map(([key, themeOption]) => (
                 <button
                   key={key}

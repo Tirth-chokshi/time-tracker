@@ -154,7 +154,9 @@ body {
 }
 
 .progress-ring {
-  transition: stroke-dashoffset 1s ease-in-out;
+  transition: stroke-dashoffset 0.5s ease-out;
+  transform-origin: center;
+  will-change: stroke-dashoffset;
 }
 
 .timeline-item {
@@ -524,7 +526,21 @@ body {
 
 /* Progress Ring Animation */
 .progress-ring {
-  transition: stroke-dashoffset 1s ease-in-out;
+  transition: stroke-dashoffset 0.5s ease-out;
+  transform-origin: center;
+  will-change: stroke-dashoffset;
+}
+
+/* Prevent layout shifts and flickering */
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Smooth transitions for all animated elements */
+.animate-smooth {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Timeline Item Enhancements */
