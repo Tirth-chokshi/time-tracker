@@ -18,6 +18,8 @@ const WorkHoursTracker = () => {
     totalBreakMinutes: 0,
     isComplete: false
   });
+  const [liveWorkSeconds, setLiveWorkSeconds] = useState(0);
+  const [liveBreakSeconds, setLiveBreakSeconds] = useState(0);
 
   const themes = {
     minimal: {
@@ -75,13 +77,31 @@ const WorkHoursTracker = () => {
 
   const theme = themes[currentTheme];
 
-  // Update current time every second
+  // Update current time and live timers every second
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
+      // Live work timer
+      if (currentStatus === 'IN' && entries.length > 0) {
+        const lastIn = [...entries].reverse().find(e => e.type === 'IN');
+        if (lastIn) {
+          setLiveWorkSeconds(Math.floor((Date.now() - new Date(lastIn.timestamp).getTime()) / 1000));
+        }
+      } else {
+        setLiveWorkSeconds(0);
+      }
+      // Live break timer
+      if (currentStatus === 'OUT' && entries.length > 0) {
+        const lastOut = [...entries].reverse().find(e => e.type === 'OUT');
+        if (lastOut) {
+          setLiveBreakSeconds(Math.floor((Date.now() - new Date(lastOut.timestamp).getTime()) / 1000));
+        }
+      } else {
+        setLiveBreakSeconds(0);
+      }
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [currentStatus, entries]);
 
   const calculateDailyStats = useCallback(() => {
     if (entries.length === 0) {
@@ -280,6 +300,14 @@ const WorkHoursTracker = () => {
     return `${hours}h ${mins}m`;
   };
 
+  // Format seconds as H:M:S
+  const formatSecondsToHMS = (seconds) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return `${h > 0 ? h + 'h ' : ''}${m}m ${s}s`;
+  };
+
   const getProgressPercentage = useCallback(() => {
     const percentage = Math.min((dailyStats.totalWorkMinutes / 480) * 100, 100);
     return Math.round(percentage * 10) / 10; // Round to 1 decimal place for stability
@@ -293,9 +321,6 @@ const WorkHoursTracker = () => {
   // Auto-save when day is complete
   useEffect(() => {
     if (dailyStats.isComplete && entries.length > 0) {
-      // Optional: Auto-save when day is complete
-      // Uncomment the line below if you want automatic saving
-      // saveDailyLog();
     }
   }, [dailyStats.isComplete, entries.length]);
 
@@ -500,12 +525,21 @@ const WorkHoursTracker = () => {
                   <p className={`text-xs sm:text-sm ${theme.textMuted} font-medium`}>
                     {currentStatus === 'OUT' ? 'Ready to start your work session' : 'Session in progress'}
                   </p>
+                  {/* Live timer for current session */}
+                  {currentStatus === 'IN' && (
+                    <div className={`mt-2 text-base sm:text-lg font-mono font-bold ${theme.textPrimary}`}>
+                      {`Current Work: ${formatSecondsToHMS(liveWorkSeconds)}`}
+                    </div>
+                  )}
+                  {currentStatus === 'OUT' && entries.length > 0 && (
+                    <div className={`mt-2 text-base sm:text-lg font-mono font-bold ${theme.textPrimary}`}>
+                      {`Break Time: ${formatSecondsToHMS(liveBreakSeconds)}`}
+                    </div>
+                  )}
                 </div>
-                
                 <div className="flex justify-center mb-6 sm:mb-8">
                   <CircularProgress percentage={getProgressPercentage()} size={160} />
                 </div>
-                
                 <button
                   onClick={handleThumbPress}
                   className={`clock-button w-full ${
