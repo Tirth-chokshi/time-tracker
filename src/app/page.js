@@ -4,22 +4,42 @@ import { useSession, signIn, signOut } from 'next-auth/react';
 import Image from 'next/image';
 import { Clock, Play, Pause, RotateCcw, CheckCircle, Coffee, Activity, Timer, Target, BarChart2, Sparkles, Moon, CircleDot, LogOut, User } from 'lucide-react';
 import { useToast } from '@/components/Toast';
+import { useSessionManager } from '@/hooks/useSessionManager';
+import { useRealtimeTimer } from '@/hooks/useRealtimeTimer';
 
 const WorkHoursTracker = () => {
   const { data: session, status } = useSession();
   const { showToast, ToastContainer } = useToast();
-  const [entries, setEntries] = useState([]);
-  const [currentStatus, setCurrentStatus] = useState('OUT');
+  
+  // Use session manager for persistent state
+  const { 
+    sessionData, 
+    isLoading: sessionLoading, 
+    error: sessionError,
+    updateSessionData, 
+    resetSession 
+  } = useSessionManager();
+
+  // Use realtime timer with session data
+  const {
+    liveWorkSeconds,
+    liveBreakSeconds,
+    clockIn,
+    clockOut,
+    formatSecondsToHMS,
+    formatMinutesToHours,
+    getProgressPercentage,
+    getRemainingTime,
+    dailyStats
+  } = useRealtimeTimer(sessionData, updateSessionData);
+
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showBreakDialog, setShowBreakDialog] = useState(false);
-  const [currentTheme, setCurrentTheme] = useState('minimal');
-  const [dailyStats, setDailyStats] = useState({
-    totalWorkMinutes: 0,
-    totalBreakMinutes: 0,
-    isComplete: false
-  });
-  const [liveWorkSeconds, setLiveWorkSeconds] = useState(0);
-  const [liveBreakSeconds, setLiveBreakSeconds] = useState(0);
+
+  // Get current values from sessionData or defaults
+  const entries = sessionData?.entries || [];
+  const currentStatus = sessionData?.currentStatus || 'OUT';
+  const currentTheme = sessionData?.currentTheme || 'minimal';
 
   const themes = {
     minimal: {
@@ -77,68 +97,18 @@ const WorkHoursTracker = () => {
 
   const theme = themes[currentTheme];
 
-  // Update current time and live timers every second
+  // Update current time every second
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-      // Live work timer
-      if (currentStatus === 'IN' && entries.length > 0) {
-        const lastIn = [...entries].reverse().find(e => e.type === 'IN');
-        if (lastIn) {
-          setLiveWorkSeconds(Math.floor((Date.now() - new Date(lastIn.timestamp).getTime()) / 1000));
-        }
-      } else {
-        setLiveWorkSeconds(0);
-      }
-      // Live break timer
-      if (currentStatus === 'OUT' && entries.length > 0) {
-        const lastOut = [...entries].reverse().find(e => e.type === 'OUT');
-        if (lastOut) {
-          setLiveBreakSeconds(Math.floor((Date.now() - new Date(lastOut.timestamp).getTime()) / 1000));
-        }
-      } else {
-        setLiveBreakSeconds(0);
-      }
     }, 1000);
     return () => clearInterval(timer);
-  }, [currentStatus, entries]);
+  }, []);
 
-  const calculateDailyStats = useCallback(() => {
-    if (entries.length === 0) {
-      setDailyStats({ totalWorkMinutes: 0, totalBreakMinutes: 0, isComplete: false });
-      return;
-    }
-
-    let totalWorkMinutes = 0;
-    let totalBreakMinutes = 0;
-
-    for (let i = 0; i < entries.length - 1; i += 2) {
-      if (entries[i].type === 'IN' && entries[i + 1]?.type === 'OUT') {
-        const workMinutes = (entries[i + 1].timestamp - entries[i].timestamp) / (1000 * 60);
-        totalWorkMinutes += workMinutes;
-      }
-    }
-
-    for (let i = 1; i < entries.length - 1; i += 2) {
-      if (entries[i].type === 'OUT' && entries[i + 1]?.type === 'IN') {
-        const breakMinutes = (entries[i + 1].timestamp - entries[i].timestamp) / (1000 * 60);
-        totalBreakMinutes += breakMinutes;
-      }
-    }
-
-    const isComplete = totalWorkMinutes >= 480;
-
-    setDailyStats({
-      totalWorkMinutes: Math.round(totalWorkMinutes),
-      totalBreakMinutes: Math.round(totalBreakMinutes),
-      isComplete
-    });
-  }, [entries]);
-
-  // Calculate daily stats whenever entries change
-  useEffect(() => {
-    calculateDailyStats();
-  }, [entries, calculateDailyStats]);
+  // Theme update handler
+  const handleThemeChange = useCallback((newTheme) => {
+    updateSessionData({ currentTheme: newTheme });
+  }, [updateSessionData]);
 
   const formatTime = (date) => {
     return date.toLocaleTimeString('en-US', { 
@@ -165,32 +135,6 @@ const WorkHoursTracker = () => {
     }
   };
 
-  const clockIn = () => {
-    const now = new Date();
-    const newEntry = {
-      id: Date.now(),
-      timestamp: now,
-      type: 'IN',
-      time: formatTime(now)
-    };
-
-    setEntries(prev => [...prev, newEntry]);
-    setCurrentStatus('IN');
-  };
-
-  const clockOut = () => {
-    const now = new Date();
-    const newEntry = {
-      id: Date.now(),
-      timestamp: now,
-      type: 'OUT',
-      time: formatTime(now)
-    };
-
-    setEntries(prev => [...prev, newEntry]);
-    setCurrentStatus('OUT');
-  };
-
   const handleBreakResponse = (isBreak) => {
     clockOut();
     setShowBreakDialog(false);
@@ -201,9 +145,8 @@ const WorkHoursTracker = () => {
   };
 
   const resetDay = () => {
-    setEntries([]);
-    setCurrentStatus('OUT');
-    setDailyStats({ totalWorkMinutes: 0, totalBreakMinutes: 0, isComplete: false });
+    resetSession();
+    showToast('Day reset successfully', 'success');
   };
 
   const saveDailyLog = async () => {
@@ -292,45 +235,45 @@ const WorkHoursTracker = () => {
         </div>
       </div>
     );
-  };
-
-  const formatMinutesToHours = (minutes) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours}h ${mins}m`;
-  };
-
-  // Format seconds as H:M:S
-  const formatSecondsToHMS = (seconds) => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    return `${h > 0 ? h + 'h ' : ''}${m}m ${s}s`;
-  };
-
-  const getProgressPercentage = useCallback(() => {
-    const percentage = Math.min((dailyStats.totalWorkMinutes / 480) * 100, 100);
-    return Math.round(percentage * 10) / 10; // Round to 1 decimal place for stability
-  }, [dailyStats.totalWorkMinutes]);
-
-  const getRemainingTime = () => {
-    const remaining = 480 - dailyStats.totalWorkMinutes;
-    return remaining > 0 ? formatMinutesToHours(remaining) : '0h 0m';
-  };
+  }; 
 
   // Auto-save when day is complete
   useEffect(() => {
     if (dailyStats.isComplete && entries.length > 0) {
+      // Optional: Auto-save when goal is achieved
     }
   }, [dailyStats.isComplete, entries.length]);
 
-  // Authentication gating logic (must be after all hooks)
-  if (status === 'loading') {
+  // Show loading state while session is loading
+  if (status === 'loading' || sessionLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if session failed to load
+  if (sessionError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center max-w-md mx-auto px-6">
+          <div className="bg-red-100 p-4 rounded-2xl w-20 h-20 mx-auto mb-6 flex items-center justify-center">
+            <Timer className="w-10 h-10 text-red-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Session Error</h1>
+          <p className="text-gray-600 mb-8">
+            Failed to load your session data. Please try refreshing the page.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-semibold"
+          >
+            Refresh Page
+          </button>
         </div>
       </div>
     );
@@ -449,7 +392,7 @@ const WorkHoursTracker = () => {
               {Object.entries(themes).map(([key, themeOption]) => (
                 <button
                   key={key}
-                  onClick={() => setCurrentTheme(key)}
+                  onClick={() => handleThemeChange(key)}
                   className={`flex items-center space-x-1 sm:space-x-2 px-3 py-2 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl transition-all duration-300 hover:scale-105 active:scale-95 min-w-max touch-action flex-shrink-0 ${
                     currentTheme === key
                       ? 'bg-gradient-primary text-white shadow-glow'
