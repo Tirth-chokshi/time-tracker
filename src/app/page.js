@@ -596,10 +596,37 @@ const WorkHoursTracker = () => {
                     <div className="bg-white/20 p-2 sm:p-2.5 rounded-lg sm:rounded-xl">
                       <Target className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <p className="text-white/80 text-xs sm:text-sm font-medium">Remaining</p>
                       <p className="text-lg sm:text-xl font-bold tracking-tight">
                         {getRemainingTime()}
+                      </p>
+                      {/* Add estimated completion time */}
+                      <p className="text-white/60 text-xs font-medium mt-1">
+                        {(() => {
+                          const remainingTimeStr = getRemainingTime();
+                          if (remainingTimeStr === '0h 0m' || remainingTimeStr === 'Goal Complete!') {
+                            return 'Goal achieved!';
+                          }
+                          
+                          // Parse remaining time to calculate completion time
+                          const match = remainingTimeStr.match(/(\d+)h (\d+)m/);
+                          if (match) {
+                            const hours = parseInt(match[1]);
+                            const minutes = parseInt(match[2]);
+                            const totalMinutes = hours * 60 + minutes;
+                            
+                            const completionTime = new Date();
+                            completionTime.setMinutes(completionTime.getMinutes() + totalMinutes);
+                            
+                            return `Done by ${completionTime.toLocaleTimeString('en-US', {
+                              hour12: true,
+                              hour: 'numeric',
+                              minute: '2-digit'
+                            })}`;
+                          }
+                          return '';
+                        })()}
                       </p>
                     </div>
                   </div>
